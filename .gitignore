@@ -1,7 +1,74 @@
-.vscode/
-.idea/
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+rss-aggregator
+/cmd/api/api
+
+# Test binaries and coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Dependency directories
 vendor/
 
+# Environment variables
 .env
+.env.local
 
-rss-aggregator
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+log/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Air live reload (if you use it)
+.air.toml
+tmp/
+
+# Database files (if using SQLite for testing)
+*.db
+*.sqlite
+*.sqlite3
+
+# Build output
+dist/
+build/
+
+# Node modules (if you add frontend later)
+node_modules/
+
+# NOTE: SQLC generated files are COMMITTED to git
+# DO NOT add internal/database/*.go to .gitignore
+# Reason: Generated code should be versioned for easier builds and code review
