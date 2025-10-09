@@ -9,12 +9,13 @@ import (
 
 // User represents a user in the API
 // Different from database model - used for API responses
+// Not password_hash is NOT included here for security reasons
 type User struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Name      string    `json:"name"`
-	APIKey    string    `json:"api_key"`
+	Email     string    `json:"email"`
 }
 
 // Feed represents an RSS feed in the API
@@ -38,13 +39,14 @@ type FeedFollow struct {
 }
 
 // DatabaseUserToUser converts a database user to an API user
+// Note: password_hash is NOT included for security
 func DatabaseUserToUser(dbUser database.User) User {
 	return User{
 		ID:        dbUser.ID,
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Name:      dbUser.Name,
-		APIKey:    dbUser.ApiKey,
+		Email:     dbUser.Email.String, // sql.NullString -> string conversion
 	}
 }
 

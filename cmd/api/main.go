@@ -31,6 +31,11 @@ func main() {
 		log.Fatal("$DB_URL must be set")
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("$JWT_SECRET must be set")
+	}
+
 	// Open database connection
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -65,9 +70,15 @@ func main() {
 	v1Router.Get("/ready", handlers.HandlerReadiness)
 	v1Router.Get("/error", handlers.HandlerErr)
 
-	// User endpoints
-	v1Router.Post("/users", handlerConfig.HandlerCreateUser)
-	v1Router.Get("/users", middlewareConfig.Auth(handlerConfig.HandlerGetUser))
+	// Authentication endpoints (Public - no auth required)
+	// POST /v1/auth/register - Yeni kullanıcı kaydı
+	// POST /v1/auth/login - Kullanıcı girişi
+	v1Router.Post("/auth/register", handlerConfig.HandlerRegister)
+	v1Router.Post("/auth/login", handlerConfig.HandlerLogin)
+
+	// User endpoints (Protected - JWT required)
+	// GET /v1/users/me - Giriş yapmış kullanıcının bilgilerini döndürür
+	v1Router.Get("/users/me", middlewareConfig.Auth(handlerConfig.HandlerGetUser))
 
 	// Feed endpoints
 	v1Router.Post("/feed", middlewareConfig.Auth(handlerConfig.HandlerCreateFeed))
