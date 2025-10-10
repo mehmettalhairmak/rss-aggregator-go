@@ -45,7 +45,7 @@ func main() {
 
 	// Create database queries and handler configs
 	dbQueries := database.New(conn)
-	handlerConfig := handlers.NewConfig(dbQueries)
+	handlerConfig := handlers.NewConfig(dbQueries, conn)
 	middlewareConfig := middleware.NewConfig(dbQueries)
 
 	// Create Chi router

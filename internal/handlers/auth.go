@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -83,21 +84,42 @@ func (cfg *Config) HandlerRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate JWT token for immediate authentication
-	token, err := auth.GenerateJWT(user.ID, user.Email.String)
+	accessToken, err := auth.GenerateJWT(user.ID, user.Email.String)
 	if err != nil {
 		models.RespondWithError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
+
+	_, errSaveRefreshTokenDb := cfg.DB.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		TokenHash: auth.HashRefreshToken(refreshToken),
+		ExpiresAt: time.Now().Add(24 * time.Hour * 7).UTC(),
+		CreatedAt: time.Now().UTC(),
+	})
+	if errSaveRefreshTokenDb != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to save refresh token")
+		return
+	}
+
 	// Return user data and authentication token
 	type response struct {
-		User  models.User `json:"user"`
-		Token string      `json:"token"`
+		User         models.User `json:"user"`
+		AccessToken  string      `json:"access_token"`
+		RefreshToken string      `json:"refresh_token"`
+		ExpiresIn    int64       `json:"expires_in"`
 	}
 
 	models.RespondWithJSON(w, http.StatusCreated, response{
-		User:  models.DatabaseUserToUser(user),
-		Token: token,
+		User:         models.DatabaseUserToUser(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 
@@ -166,14 +188,61 @@ func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshToken, errRefreshToken := auth.GenerateRefreshToken()
+	if errRefreshToken != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
+
+	tx, errorTx := cfg.DBConn.BeginTx(r.Context(), nil)
+	if errorTx != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to start transaction")
+		return
+	}
+
+	defer func(tx *sql.Tx) {
+		err := tx.Rollback()
+		if err != nil && !errors.Is(err, sql.ErrTxDone) {
+			models.RespondWithError(w, http.StatusInternalServerError, "Failed to rollback transaction")
+			return
+		}
+	}(tx)
+
+	qtx := cfg.DB.WithTx(tx)
+
+	errDeleteRefreshTokenDb := qtx.DeleteRefreshToken(r.Context(), user.ID)
+	if errDeleteRefreshTokenDb != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to delete refresh token")
+		return
+	}
+
+	_, errSaveRefreshTokenDb := qtx.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		TokenHash: auth.HashRefreshToken(refreshToken),
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour).UTC(),
+		CreatedAt: time.Now().UTC(),
+	})
+	if errSaveRefreshTokenDb != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to save refresh token")
+		return
+	}
+
+	if errTxCommit := tx.Commit(); errTxCommit != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to commit transaction")
+		return
+	}
+
 	// Return user data and authentication token
 	type response struct {
-		User  models.User `json:"user"`
-		Token string      `json:"token"`
+		User         models.User `json:"user"`
+		AccessToken  string      `json:"access_token"`
+		RefreshToken string      `json:"refresh_token"`
 	}
 
 	models.RespondWithJSON(w, http.StatusOK, response{
-		User:  models.DatabaseUserToUser(user),
-		Token: token,
+		User:         models.DatabaseUserToUser(user),
+		AccessToken:  token,
+		RefreshToken: refreshToken,
 	})
 }

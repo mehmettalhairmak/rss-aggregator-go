@@ -1,6 +1,10 @@
 package auth
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -46,7 +50,7 @@ type CustomClaims struct {
 //   - Token expires after 24 hours
 //   - Secret key loaded from environment variable
 func GenerateJWT(userID uuid.UUID, email string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
+	expirationTime := time.Now().Add(15 * time.Minute)
 
 	claims := &CustomClaims{
 		UserID: userID,
@@ -65,6 +69,19 @@ func GenerateJWT(userID uuid.UUID, email string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+// GenerateRefreshToken crates a secure, random string to be used as a refresh token.
+// It generates 32bytes of random data and encodes it to a URL-safe base64 string.
+func GenerateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // ValidateJWT verifies and parses a JWT token string.
@@ -141,4 +158,11 @@ func GetBearerToken(authHeader string) (string, error) {
 	}
 
 	return token, nil
+}
+
+func HashRefreshToken(tokenString string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(tokenString))
+
+	return hex.EncodeToString(hasher.Sum(nil))
 }
