@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -194,42 +196,9 @@ func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, errorTx := cfg.DBConn.BeginTx(r.Context(), nil)
-	if errorTx != nil {
-		models.RespondWithError(w, http.StatusInternalServerError, "Failed to start transaction")
-		return
-	}
-
-	defer func(tx *sql.Tx) {
-		err := tx.Rollback()
-		if err != nil && !errors.Is(err, sql.ErrTxDone) {
-			models.RespondWithError(w, http.StatusInternalServerError, "Failed to rollback transaction")
-			return
-		}
-	}(tx)
-
-	qtx := cfg.DB.WithTx(tx)
-
-	errDeleteRefreshTokenDb := qtx.DeleteRefreshToken(r.Context(), user.ID)
-	if errDeleteRefreshTokenDb != nil {
-		models.RespondWithError(w, http.StatusInternalServerError, "Failed to delete refresh token")
-		return
-	}
-
-	_, errSaveRefreshTokenDb := qtx.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
-		ID:        uuid.New(),
-		UserID:    user.ID,
-		TokenHash: auth.HashRefreshToken(refreshToken),
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour).UTC(),
-		CreatedAt: time.Now().UTC(),
-	})
-	if errSaveRefreshTokenDb != nil {
-		models.RespondWithError(w, http.StatusInternalServerError, "Failed to save refresh token")
-		return
-	}
-
-	if errTxCommit := tx.Commit(); errTxCommit != nil {
-		models.RespondWithError(w, http.StatusInternalServerError, "Failed to commit transaction")
+	errDeleteGenerateRefreshToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), user, refreshToken)
+	if errDeleteGenerateRefreshToken != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, errDeleteGenerateRefreshToken.Error())
 		return
 	}
 
@@ -245,4 +214,153 @@ func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  token,
 		RefreshToken: refreshToken,
 	})
+}
+
+// HandlerRefreshToken handles issuing a new JWT access token using a valid refresh token.
+//
+// Flow:
+//  1. Parse and validate refresh token from request body
+//  2. Hash the provided refresh token for secure comparison
+//  3. Retrieve the corresponding refresh token record from the database
+//  4. Check if the refresh token is expired
+//  5. Retrieve the associated user from the database
+//  6. Generate a new JWT access token
+//  7. Generate a new refresh token and update the database record
+//  8. Return the new access token, refresh token, and user data
+//
+// Security:
+//   - Refresh tokens are hashed before storage and comparison to prevent leakage
+//   - Expired refresh tokens are rejected to prevent reuse
+//   - New refresh tokens are generated upon each use to limit lifespan
+//
+// HTTP Status Codes:
+//   - 200 OK: New tokens successfully issued
+//   - 400 Bad Request: Missing or invalid refresh token, or expired token
+//   - 401 Unauthorized: Invalid token
+//   - 500 Internal Server Error: Database or token generation failure
+func (cfg *Config) HandlerRefreshToken(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+
+	err := decoder.Decode(&params)
+	if err != nil {
+		models.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Error parsing JSON: %v", err))
+		return
+	}
+
+	if params.RefreshToken == "" {
+		models.RespondWithError(w, http.StatusBadRequest, "Refresh token is required")
+		return
+	}
+
+	hashedRefreshTokenPayload := auth.HashRefreshToken(params.RefreshToken)
+	if hashedRefreshTokenPayload == "" {
+		models.RespondWithError(w, http.StatusBadRequest, "Refresh token is required")
+	}
+
+	refreshTokenObject, errGetRefreshTokenFromDb := cfg.DB.GetRefreshTokenByHash(r.Context(), hashedRefreshTokenPayload)
+	if errGetRefreshTokenFromDb != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to get refresh token from DB")
+		return
+	}
+
+	if time.Now().UTC().After(refreshTokenObject.ExpiresAt) {
+		models.RespondWithError(w, http.StatusBadRequest, "Refresh token is expired")
+		return
+	}
+
+	user, errFindUser := cfg.DB.GetUserByID(r.Context(), refreshTokenObject.UserID)
+	if errFindUser != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to find user")
+		return
+	}
+
+	accessToken, err := auth.GenerateJWT(user.ID, user.Email.String)
+	if err != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken()
+	if err != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, "Failed to generate refresh token")
+		return
+	}
+
+	errGenerateRefToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), user, refreshToken)
+	if errGenerateRefToken != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, errGenerateRefToken.Error())
+		return
+	}
+
+	type response struct {
+		User         models.User `json:"user"`
+		AccessToken  string      `json:"access_token"`
+		RefreshToken string      `json:"refresh_token"`
+	}
+
+	models.RespondWithJSON(w, http.StatusOK, response{
+		User:         models.DatabaseUserToUser(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
+
+}
+
+// deleteAndGenerateRefreshTokenFromDB deletes any existing refresh token for the user
+// and creates a new refresh token record in the database within a transaction.
+//
+// Parameters:
+//   - context: The context for database operations
+//   - user: The user for whom the refresh token is being managed
+//   - refreshTokenString: The new refresh token string to be hashed and stored
+//
+// Returns:
+//   - error: Any error encountered during the process, or nil if successful
+//
+// Transaction Management:
+//   - Begins a new database transaction
+//   - Deletes existing refresh token for the user
+//   - Inserts the new refresh token record
+//   - Commits the transaction if all operations succeed
+//   - Rolls back the transaction in case of any errors
+func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, user database.User, refreshTokenString string) error {
+	tx, errorTx := cfg.DBConn.BeginTx(context, nil)
+	if errorTx != nil {
+		return fmt.Errorf("Failed to start transaction: %v", errorTx)
+	}
+
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			log.Printf("transaction rollback failed: %v", err)
+		}
+	}()
+
+	qtx := cfg.DB.WithTx(tx)
+
+	errDeleteRefreshTokenDb := qtx.DeleteRefreshToken(context, user.ID)
+	if errDeleteRefreshTokenDb != nil {
+		return fmt.Errorf("Failed to delete refresh token: %v", errDeleteRefreshTokenDb)
+	}
+
+	_, errSaveRefreshTokenDb := qtx.CreateRefreshToken(context, database.CreateRefreshTokenParams{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		TokenHash: auth.HashRefreshToken(refreshTokenString),
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour).UTC(),
+		CreatedAt: time.Now().UTC(),
+	})
+	if errSaveRefreshTokenDb != nil {
+		return fmt.Errorf("Failed to save refresh token: %v", errSaveRefreshTokenDb)
+	}
+
+	if errTxCommit := tx.Commit(); errTxCommit != nil {
+		return fmt.Errorf("Failed to commit transaction: %v", errTxCommit)
+	}
+
+	return nil
 }

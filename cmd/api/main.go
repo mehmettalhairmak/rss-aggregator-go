@@ -75,9 +75,10 @@ func main() {
 	// POST /v1/auth/login - Kullanıcı girişi
 	v1Router.Post("/auth/register", handlerConfig.HandlerRegister)
 	v1Router.Post("/auth/login", handlerConfig.HandlerLogin)
+	v1Router.Post("/auth/refresh", handlerConfig.HandlerRefreshToken)
 
 	// User endpoints (Protected - JWT required)
-	// GET /v1/users/me - Giriş yapmış kullanıcının bilgilerini döndürür
+	// GET /v1/users/me - Returns the authenticated user's information
 	v1Router.Get("/users/me", middlewareConfig.Auth(handlerConfig.HandlerGetUser))
 
 	// Feed endpoints

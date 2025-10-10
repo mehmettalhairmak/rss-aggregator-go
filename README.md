@@ -225,10 +225,6 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
   - Token expiration & rotation
   - Refresh token storage in database
   - Secure JWT secret management
-- [ ] **Migration Strategy**
-  - Keep existing API key auth (backwards compatible)
-  - Dual authentication support (API Key + JWT)
-  - Update middleware to support both methods
 
 ### Phase 2: RSS Scraping
 
