@@ -215,12 +215,12 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 
 ### Phase 1: JWT Authentication System
 
-- [ ] **User Authentication**
+- [x] **User Authentication**
   - Login/logout endpoints
   - User registration with email & password
   - Password hashing with bcrypt
   - Email validation
-- [ ] **JWT Implementation**
+- [x] **JWT Implementation**
   - Access & refresh token generation
   - Token expiration & rotation
   - Refresh token storage in database
