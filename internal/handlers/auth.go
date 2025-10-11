@@ -196,7 +196,7 @@ func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errDeleteGenerateRefreshToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), user, refreshToken)
+	errDeleteGenerateRefreshToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), &user, refreshToken)
 	if errDeleteGenerateRefreshToken != nil {
 		models.RespondWithError(w, http.StatusInternalServerError, errDeleteGenerateRefreshToken.Error())
 		return
@@ -305,7 +305,7 @@ func (cfg *Config) HandlerRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errGenerateRefToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), user, refreshToken)
+	errGenerateRefToken := cfg.deleteAndGenerateRefreshTokenFromDB(r.Context(), &user, refreshToken)
 	if errGenerateRefToken != nil {
 		models.RespondWithError(w, http.StatusInternalServerError, errGenerateRefToken.Error())
 		return
@@ -342,7 +342,7 @@ func (cfg *Config) HandlerRefreshToken(w http.ResponseWriter, r *http.Request) {
 //   - Inserts the new refresh token record
 //   - Commits the transaction if all operations succeed
 //   - Rolls back the transaction in case of any errors
-func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, user database.User, refreshTokenString string) error {
+func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, user *database.User, refreshTokenString string) error {
 	tx, errorTx := cfg.DBConn.BeginTx(context, nil)
 	if errorTx != nil {
 		return fmt.Errorf("Failed to start transaction: %v", errorTx)
