@@ -76,6 +76,7 @@ func main() {
 	v1Router.Post("/auth/register", handlerConfig.HandlerRegister)
 	v1Router.Post("/auth/login", handlerConfig.HandlerLogin)
 	v1Router.Post("/auth/refresh", handlerConfig.HandlerRefreshToken)
+	v1Router.Get("/auth/logout", middlewareConfig.Auth(handlerConfig.HandlerLogout))
 
 	// User endpoints (Protected - JWT required)
 	// GET /v1/users/me - Returns the authenticated user's information
