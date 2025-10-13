@@ -26,8 +26,18 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 		return
 	}
 
+	tx, errTx := cfg.DBConn.BeginTx(r.Context(), nil)
+	if errTx != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error starting transaction: %v", errTx))
+		return
+	}
+
+	defer tx.Rollback()
+
+	qtx := cfg.DB.WithTx(tx)
+
 	// Add new feed to database
-	feed, err := cfg.DB.CreateFeed(r.Context(), database.CreateFeedParams{
+	feed, errCreateFeed := qtx.CreateFeed(r.Context(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		Name:      params.Name,
 		CreatedAt: time.Now().UTC(),
@@ -35,12 +45,37 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 		Url:       params.URL,
 		UserID:    user.ID,
 	})
-	if err != nil {
-		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Create Feed failed: %v", err))
+	if errCreateFeed != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Create Feed failed: %v", errCreateFeed))
 		return
 	}
 
-	models.RespondWithJSON(w, http.StatusCreated, models.DatabaseFeedToFeed(feed))
+	feedFollow, errCreateFeedFollow := qtx.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if errCreateFeedFollow != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Create Feed Follow failed: %v", errCreateFeedFollow))
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error committing transaction: %v", err))
+		return
+	}
+
+	type response struct {
+		Feed       models.Feed       `json:"feed"`
+		FeedFollow models.FeedFollow `json:"feed_follow"`
+	}
+
+	models.RespondWithJSON(w, http.StatusCreated, response{
+		Feed:       models.DatabaseFeedToFeed(feed),
+		FeedFollow: models.DatabaseFeedFollowToFeedFollow(feedFollow),
+	})
 }
 
 // HandlerGetFeed returns all feeds

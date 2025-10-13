@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -13,6 +14,7 @@ import (
 	"github.com/mehmettalhairmak/rss-aggregator/internal/database"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/handlers"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/middleware"
+	"github.com/mehmettalhairmak/rss-aggregator/internal/scraper"
 )
 
 func main() {
@@ -71,8 +73,8 @@ func main() {
 	v1Router.Get("/error", handlers.HandlerErr)
 
 	// Authentication endpoints (Public - no auth required)
-	// POST /v1/auth/register - Yeni kullanıcı kaydı
-	// POST /v1/auth/login - Kullanıcı girişi
+	// POST /v1/auth/register
+	// POST /v1/auth/login
 	v1Router.Post("/auth/register", handlerConfig.HandlerRegister)
 	v1Router.Post("/auth/login", handlerConfig.HandlerLogin)
 	v1Router.Post("/auth/refresh", handlerConfig.HandlerRefreshToken)
@@ -93,6 +95,8 @@ func main() {
 
 	// Mount v1Router to main router
 	router.Mount("/v1", v1Router)
+
+	go scraper.StartScraping(dbQueries, 10, time.Minute)
 
 	// Create and start HTTP server
 	srv := &http.Server{
