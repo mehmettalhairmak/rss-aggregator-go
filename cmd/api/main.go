@@ -93,6 +93,9 @@ func main() {
 	v1Router.Get("/feed_follows", middlewareConfig.Auth(handlerConfig.HandlerGetFeedFollow))
 	v1Router.Delete("/feed_follows/{feedFollowID}", middlewareConfig.Auth(handlerConfig.HandlerDeleteFeedFollow))
 
+	// Posts endpoints
+	v1Router.Get("/posts", middlewareConfig.Auth(handlerConfig.HandlerGetUserPostsForUser))
+
 	// Mount v1Router to main router
 	router.Mount("/v1", v1Router)
 

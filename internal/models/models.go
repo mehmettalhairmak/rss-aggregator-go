@@ -38,6 +38,16 @@ type FeedFollow struct {
 	FeedID    uuid.UUID `json:"feed_id"`
 }
 
+type Post struct {
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Title       string    `json:"title"`
+	Url         string    `json:"url"`
+	PublishedAt time.Time `json:"published_at"`
+	FeedID      uuid.UUID `json:"feed_id"`
+}
+
 // DatabaseUserToUser converts a database user to an API user
 // Note: password_hash is NOT included for security
 func DatabaseUserToUser(dbUser database.User) User {
@@ -60,6 +70,26 @@ func DatabaseFeedToFeed(dbFeed database.Feed) Feed {
 		Url:       dbFeed.Url,
 		UserID:    dbFeed.UserID,
 	}
+}
+
+func DatabasePostToPost(dbPost database.Post) Post {
+	return Post{
+		ID:          dbPost.ID,
+		CreatedAt:   dbPost.CreatedAt,
+		UpdatedAt:   dbPost.UpdatedAt,
+		Title:       dbPost.Title,
+		Url:         dbPost.Url,
+		PublishedAt: dbPost.PublishedAt,
+		FeedID:      dbPost.FeedID,
+	}
+}
+
+func DatabaseAllPostToAllPost(dbPosts []database.Post) []Post {
+	posts := make([]Post, len(dbPosts))
+	for _, post := range dbPosts {
+		posts = append(posts, DatabasePostToPost(post))
+	}
+	return posts
 }
 
 // DatabaseAllFeedToAllFeed converts multiple database feeds to API feeds

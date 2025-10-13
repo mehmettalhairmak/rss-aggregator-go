@@ -228,10 +228,10 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 
 ### Phase 2: RSS Scraping
 
-- [ ] Posts table schema & migration
-- [ ] RSS XML parser (RSS 2.0 & Atom)
-- [ ] Background worker for periodic fetching
-- [ ] Posts API endpoints with pagination
+- [x] Posts table schema & migration
+- [x] RSS XML parser (RSS 2.0 & Atom)
+- [x] Background worker for periodic fetching
+- [x] Posts API endpoints with pagination
 
 ### Phase 3: Enhanced Features
 

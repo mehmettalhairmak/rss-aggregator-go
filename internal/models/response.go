@@ -22,9 +22,7 @@ func RespondWithError(w http.ResponseWriter, code int, message string) {
 }
 
 // RespondWithJSON sends a JSON response
-// JSON response gönderir
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	// Payload'ı JSON'a çevir
 	data, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Failed to marshal JSON response: %v", err)
