@@ -85,7 +85,7 @@ func DatabasePostToPost(dbPost database.Post) Post {
 }
 
 func DatabaseAllPostToAllPost(dbPosts []database.Post) []Post {
-	posts := make([]Post, len(dbPosts))
+	posts := make([]Post, 0, len(dbPosts))
 	for _, post := range dbPosts {
 		posts = append(posts, DatabasePostToPost(post))
 	}
