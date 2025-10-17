@@ -28,8 +28,6 @@ type CreateUserParams struct {
 	PasswordHash sql.NullString
 }
 
-// Açıklama: Email ve şifre ile yeni kullanıcı kayıt etme (Sadece JWT sistemi)
-// API Key kullanmıyoruz artık - sadece modern JWT authentication
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.ID,
@@ -55,8 +53,6 @@ const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, created_at, updated_at, name, email, password_hash FROM users WHERE email = $1
 `
 
-// Açıklama: Email ile kullanıcı bulma (login için gerekli)
-// Login yaparken kullanıcının email'ini alıp şifresini kontrol edeceğiz
 func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
@@ -75,7 +71,6 @@ const getUserByID = `-- name: GetUserByID :one
 SELECT id, created_at, updated_at, name, email, password_hash FROM users WHERE id = $1
 `
 
-// Açıklama: ID ile kullanıcı bulma (JWT token'dan user_id alınca gerekli)
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
