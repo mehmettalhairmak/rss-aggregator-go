@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/database"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/models"
+	"github.com/mmcdole/gofeed"
 )
 
 // HandlerCreateFeed creates a new RSS feed
@@ -23,6 +24,13 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 	err := decoder.Decode(&params)
 	if err != nil {
 		models.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request payload: %v", err))
+		return
+	}
+
+	gf := gofeed.NewParser()
+	_, errParseUrl := gf.ParseURL(params.URL)
+	if errParseUrl != nil {
+		models.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request URL: %v", errParseUrl))
 		return
 	}
 
