@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,10 +29,17 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 	}
 
 	gf := gofeed.NewParser()
-	_, errParseUrl := gf.ParseURL(params.URL)
+	parsedFeed, errParseUrl := gf.ParseURL(params.URL)
 	if errParseUrl != nil {
 		models.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request URL: %v", errParseUrl))
 		return
+	}
+
+	// Extract metadata from parsed feed
+	description := parsedFeed.Description
+	logoUrl := ""
+	if parsedFeed.Image != nil {
+		logoUrl = parsedFeed.Image.URL
 	}
 
 	tx, errTx := cfg.DBConn.BeginTx(r.Context(), nil)
@@ -44,14 +52,26 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 
 	qtx := cfg.DB.WithTx(tx)
 
-	// Add new feed to database
+	// Add new feed to database with metadata
+	var descriptionNullStr, logoUrlNullStr sql.NullString
+
+	if description != "" {
+		descriptionNullStr = sql.NullString{String: description, Valid: true}
+	}
+	if logoUrl != "" {
+		logoUrlNullStr = sql.NullString{String: logoUrl, Valid: true}
+	}
+
 	feed, errCreateFeed := qtx.CreateFeed(r.Context(), database.CreateFeedParams{
-		ID:        uuid.New(),
-		Name:      params.Name,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Url:       params.URL,
-		UserID:    user.ID,
+		ID:          uuid.New(),
+		Name:        params.Name,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+		Url:         params.URL,
+		UserID:      user.ID,
+		Description: descriptionNullStr,
+		LogoUrl:     logoUrlNullStr,
+		Priority:    3, // Default priority
 	})
 	if errCreateFeed != nil {
 		models.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Create Feed failed: %v", errCreateFeed))

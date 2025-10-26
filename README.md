@@ -237,9 +237,9 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 
 - [x] Feed URL validation before creation
 - [x] Cursor-based pagination
-- [ ] Feed metadata (logo, description)
-- [ ] Better error handling & logging
-- [ ] Feed update priority system
+- [x] Feed metadata (logo, description)
+- [x] Better error handling & logging
+- [x] Feed update priority system
 
 ### Phase 4: Production Ready
 

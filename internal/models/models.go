@@ -20,12 +20,15 @@ type User struct {
 
 // Feed represents an RSS feed in the API
 type Feed struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Name      string    `json:"name"`
-	Url       string    `json:"url"`
-	UserID    uuid.UUID `json:"user_id"`
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Name        string    `json:"name"`
+	Url         string    `json:"url"`
+	UserID      uuid.UUID `json:"user_id"`
+	Description string    `json:"description,omitempty"`
+	LogoUrl     string    `json:"logo_url,omitempty"`
+	Priority    int       `json:"priority"`
 }
 
 // FeedFollow represents a feed follow relationship in the API
@@ -62,13 +65,26 @@ func DatabaseUserToUser(dbUser database.User) User {
 
 // DatabaseFeedToFeed converts a database feed to an API feed
 func DatabaseFeedToFeed(dbFeed database.Feed) Feed {
+	description := ""
+	if dbFeed.Description.Valid {
+		description = dbFeed.Description.String
+	}
+
+	logoUrl := ""
+	if dbFeed.LogoUrl.Valid {
+		logoUrl = dbFeed.LogoUrl.String
+	}
+
 	return Feed{
-		ID:        dbFeed.ID,
-		CreatedAt: dbFeed.CreatedAt,
-		UpdatedAt: dbFeed.UpdatedAt,
-		Name:      dbFeed.Name,
-		Url:       dbFeed.Url,
-		UserID:    dbFeed.UserID,
+		ID:          dbFeed.ID,
+		CreatedAt:   dbFeed.CreatedAt,
+		UpdatedAt:   dbFeed.UpdatedAt,
+		Name:        dbFeed.Name,
+		Url:         dbFeed.Url,
+		UserID:      dbFeed.UserID,
+		Description: description,
+		LogoUrl:     logoUrl,
+		Priority:    int(dbFeed.Priority),
 	}
 }
 

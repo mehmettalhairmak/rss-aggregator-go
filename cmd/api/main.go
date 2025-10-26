@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -13,11 +12,15 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/database"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/handlers"
+	"github.com/mehmettalhairmak/rss-aggregator/internal/logger"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/middleware"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/scraper"
 )
 
 func main() {
+	// Initialize logger first
+	logger.InitLogger()
+
 	// Load .env file if it exists
 	// Continue even if there's an error (production might not have .env)
 	_ = godotenv.Load(".env")
@@ -25,25 +28,30 @@ func main() {
 	// Check environment variables
 	portString := os.Getenv("PORT")
 	if portString == "" {
-		log.Fatal("$PORT must be set")
+		logger.Fatal("$PORT environment variable must be set")
 	}
 
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
-		log.Fatal("$DB_URL must be set")
+		logger.Fatal("$DB_URL environment variable must be set")
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		log.Fatal("$JWT_SECRET must be set")
+		logger.Fatal("$JWT_SECRET environment variable must be set")
 	}
 
+	logger.Infof("Starting RSS Aggregator API on port %s", portString)
+
 	// Open database connection
+	logger.Info("Connecting to database...")
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("Can't connect to database:", err)
+		logger.ErrorErr(err, "Failed to connect to database")
+		os.Exit(1)
 	}
 	defer conn.Close()
+	logger.Info("Successfully connected to database")
 
 	// Create database queries and handler configs
 	dbQueries := database.New(conn)
@@ -99,6 +107,8 @@ func main() {
 	// Mount v1Router to main router
 	router.Mount("/v1", v1Router)
 
+	// Start background scraper
+	logger.Info("Starting RSS feed scraper...")
 	go scraper.StartScraping(dbQueries, 10, time.Minute)
 
 	// Create and start HTTP server
@@ -107,9 +117,9 @@ func main() {
 		Addr:    ":" + portString,
 	}
 
-	log.Printf("Server starting on port %s", portString)
-	err = srv.ListenAndServe()
-	if err != nil {
-		log.Fatal("ListenAndServe:", err)
+	logger.Infof("Server starting on port %s", portString)
+	if err := srv.ListenAndServe(); err != nil {
+		logger.ErrorErr(err, "Server failed to start")
+		os.Exit(1)
 	}
 }
