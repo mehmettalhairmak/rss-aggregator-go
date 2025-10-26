@@ -13,19 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const countPostsForUser = `-- name: CountPostsForUser :one
-SELECT COUNT(*) FROM posts
-                         JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
-WHERE feed_follows.user_id = $1
-`
-
-func (q *Queries) CountPostsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countPostsForUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createPost = `-- name: CreatePost :one
 INSERT INTO posts (id, created_at, updated_at,
                    title, url, description, published_at, feed_id)
@@ -72,19 +59,19 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 
 const getPostsForUser = `-- name: GetPostsForUser :many
 SELECT posts.id, posts.created_at, posts.updated_at, posts.title, posts.url, posts.description, posts.published_at, posts.feed_id from posts JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
-WHERE feed_follows.user_id = $1
+WHERE feed_follows.user_id = $1 AND posts.published_at < $2
 ORDER BY posts.published_at DESC
-LIMIT $2 OFFSET $3
+LIMIT $3
 `
 
 type GetPostsForUserParams struct {
-	UserID uuid.UUID
-	Limit  int32
-	Offset int32
+	UserID      uuid.UUID
+	PublishedAt time.Time
+	Limit       int32
 }
 
 func (q *Queries) GetPostsForUser(ctx context.Context, arg GetPostsForUserParams) ([]Post, error) {
-	rows, err := q.db.QueryContext(ctx, getPostsForUser, arg.UserID, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getPostsForUser, arg.UserID, arg.PublishedAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

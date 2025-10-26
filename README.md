@@ -236,7 +236,7 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 ### Phase 3: Enhanced Features
 
 - [x] Feed URL validation before creation
-- [ ] Cursor-based pagination
+- [x] Cursor-based pagination
 - [ ] Feed metadata (logo, description)
 - [ ] Better error handling & logging
 - [ ] Feed update priority system

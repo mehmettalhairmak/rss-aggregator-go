@@ -7,11 +7,6 @@ RETURNING *;
 
 -- name: GetPostsForUser :many
 SELECT posts.* from posts JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
-WHERE feed_follows.user_id = $1
+WHERE feed_follows.user_id = $1 AND posts.published_at < $2
 ORDER BY posts.published_at DESC
-LIMIT $2 OFFSET $3;
-
--- name: CountPostsForUser :one
-SELECT COUNT(*) FROM posts
-                         JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
-WHERE feed_follows.user_id = $1;
+LIMIT $3;
