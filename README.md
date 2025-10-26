@@ -24,11 +24,16 @@ RSS Aggregator is a RESTful API service for managing RSS feed subscriptions. Bui
 
 ### Current
 
-- ✅ User management with API key authentication
+- ✅ User management with JWT authentication
 - ✅ RSS feed CRUD operations
 - ✅ Follow/unfollow feeds
+- ✅ Posts with cursor-based pagination
+- ✅ Feed metadata (logo, description, priority)
+- ✅ Background RSS scraper with priority scheduling
 - ✅ PostgreSQL with SQLC (type-safe SQL)
 - ✅ Database migrations with Goose
+- ✅ Rate limiting (token bucket algorithm)
+- ✅ Structured logging (zerolog)
 - ✅ Clean architecture with proper package structure
 
 ### Coming Soon
@@ -112,10 +117,10 @@ Server starts at `http://localhost:8080` 🎉
 
 ### Authentication
 
-Protected endpoints require API Key in header:
+Protected endpoints require JWT Bearer token in header:
 
 ```
-Authorization: ApiKey YOUR_API_KEY
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
 ### Endpoints
@@ -123,28 +128,37 @@ Authorization: ApiKey YOUR_API_KEY
 | Method   | Endpoint                | Auth | Description         |
 | -------- | ----------------------- | ---- | ------------------- |
 | `GET`    | `/v1/ready`             | ❌   | Health check        |
-| `POST`   | `/v1/users`             | ❌   | Create user         |
-| `GET`    | `/v1/users`             | ✅   | Get user profile    |
+| `POST`   | `/v1/auth/register`     | ❌   | Register user       |
+| `POST`   | `/v1/auth/login`        | ❌   | Login user          |
+| `POST`   | `/v1/auth/refresh`      | ❌   | Refresh token       |
+| `GET`    | `/v1/auth/logout`       | ✅   | Logout user         |
+| `GET`    | `/v1/users/me`          | ✅   | Get user profile    |
 | `POST`   | `/v1/feed`              | ✅   | Add RSS feed        |
 | `GET`    | `/v1/feed`              | ❌   | List all feeds      |
 | `POST`   | `/v1/feed_follows`      | ✅   | Follow a feed       |
 | `GET`    | `/v1/feed_follows`      | ✅   | List followed feeds |
 | `DELETE` | `/v1/feed_follows/{id}` | ✅   | Unfollow feed       |
+| `GET`    | `/v1/posts`             | ✅   | Get user posts      |
 
 ### Example Usage
 
 ```bash
-# Create user
-curl -X POST http://localhost:8080/v1/users \
+# Register user
+curl -X POST http://localhost:8080/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "John Doe"}'
+  -d '{"name": "John Doe", "email": "john@example.com", "password": "secure123"}'
 
-# Response includes api_key - save it!
+# Response includes access_token and refresh_token - save them!
+
+# Login
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "john@example.com", "password": "secure123"}'
 
 # Add a feed
 curl -X POST http://localhost:8080/v1/feed \
   -H "Content-Type: application/json" \
-  -H "Authorization: ApiKey YOUR_API_KEY" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"name": "Go Blog", "url": "https://go.dev/blog/feed.atom"}'
 
 # List all feeds
@@ -153,8 +167,12 @@ curl http://localhost:8080/v1/feed
 # Follow a feed
 curl -X POST http://localhost:8080/v1/feed_follows \
   -H "Content-Type: application/json" \
-  -H "Authorization: ApiKey YOUR_API_KEY" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"feed_id": "feed-uuid-here"}'
+
+# Get user posts
+curl http://localhost:8080/v1/posts \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Response Format
@@ -243,7 +261,7 @@ DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 
 ### Phase 4: Production Ready
 
-- [ ] Rate limiting (token bucket)
+- [x] Rate limiting (token bucket)
 - [x] Structured logging (zap/zerolog)
 - [ ] Comprehensive test suite (>80% coverage)
 - [ ] Docker & docker-compose

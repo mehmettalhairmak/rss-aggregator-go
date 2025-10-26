@@ -58,8 +58,18 @@ func main() {
 	handlerConfig := handlers.NewConfig(dbQueries, conn)
 	middlewareConfig := middleware.NewConfig(dbQueries)
 
+	// Initialize rate limiter
+	// Allow 60 requests per minute with burst size of 10
+	middleware.InitRateLimiter(middleware.RateLimitConfig{
+		RequestsPerMinute: 60,
+		BurstSize:         10,
+	})
+
 	// Create Chi router
 	router := chi.NewRouter()
+
+	// Add rate limiting middleware (applied to all routes)
+	router.Use(middleware.RateLimit)
 
 	// Add CORS middleware
 	// CORS: Cross-Origin Resource Sharing - allows API requests from different domains
