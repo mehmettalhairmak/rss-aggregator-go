@@ -16,9 +16,9 @@
 
 ## 🎯 Overview
 
-RSS Aggregator is a RESTful API service for managing RSS feed subscriptions. Built with Go, it demonstrates clean architecture, proper separation of concerns, and production-ready patterns.
+RSS Aggregator is a comprehensive RESTful API service for managing RSS feed subscriptions. Built with Go, it demonstrates clean architecture, proper separation of concerns, and production-ready patterns including JWT authentication, background workers, and comprehensive testing.
 
-**Status:** ✅ Core API Complete | 🚧 Feed Scraping In Development
+**Status:** ✅ Production-Ready Learning Project | 🎓 Best Practices Implementation
 
 ## ✨ Features
 
@@ -36,12 +36,12 @@ RSS Aggregator is a RESTful API service for managing RSS feed subscriptions. Bui
 - ✅ Structured logging (zerolog)
 - ✅ Clean architecture with proper package structure
 
-### Coming Soon
+### Testing & Quality
 
-- 🚧 Automatic RSS feed fetching
-- 🚧 Posts storage and API
-- 🚧 Background worker for periodic updates
-- 📋 See full [Roadmap](#-roadmap)
+- ✅ Comprehensive test suite (>80% coverage)
+- ✅ CI/CD with GitHub Actions
+- ✅ Code linting and security scanning
+- ✅ Docker containerization
 
 ## 🏗️ Architecture
 
@@ -49,14 +49,19 @@ RSS Aggregator is a RESTful API service for managing RSS feed subscriptions. Bui
 rss-aggregator/
 ├── cmd/api/              # Application entry point
 ├── internal/
-│   ├── auth/            # Authentication helpers
+│   ├── auth/            # JWT authentication
 │   ├── database/        # SQLC generated code
 │   ├── handlers/        # HTTP handlers
-│   ├── middleware/      # Auth middleware
-│   └── models/          # API models & responses
-└── sql/
-    ├── queries/         # SQL queries for SQLC
-    └── schema/          # Database migrations
+│   ├── middleware/      # Auth & rate limiting
+│   ├── models/          # API models & responses
+│   ├── scraper/         # Background RSS scraper
+│   └── logger/          # Structured logging
+├── sql/
+│   ├── queries/         # SQL queries for SQLC
+│   └── schema/          # Database migrations
+├── docs/                # Swagger documentation
+├── .github/workflows/   # CI/CD pipelines
+└── docker-compose.yml   # Docker orchestration
 ```
 
 **Design Patterns:**
@@ -68,13 +73,18 @@ rss-aggregator/
 
 ## 🛠️ Tech Stack
 
-| Technology     | Purpose          |
-| -------------- | ---------------- |
-| **Go 1.25+**   | Backend language |
-| **Chi Router** | HTTP routing     |
-| **PostgreSQL** | Database         |
-| **SQLC**       | Type-safe SQL    |
-| **Goose**      | Migrations       |
+| Technology     | Purpose                          |
+| -------------- | -------------------------------- |
+| **Go 1.25+**   | Backend language                 |
+| **Chi Router** | HTTP routing                     |
+| **PostgreSQL** | Database                         |
+| **SQLC**       | Type-safe SQL code generation    |
+| **Goose**      | Database migrations              |
+| **Zerolog**    | Structured logging               |
+| **JWT**        | Authentication                   |
+| **Gofeed**     | RSS/Atom feed parsing            |
+| **Docker**     | Containerization                 |
+| **Swagger**    | API documentation                |
 
 ## 🚀 Quick Start
 
@@ -111,9 +121,58 @@ cd ../..
 go run cmd/api/main.go
 ```
 
-Server starts at `http://localhost:8080` 🎉
+**Server starts at:** `http://localhost:8080` 🎉
+
+### Docker (Recommended)
+
+```bash
+# Clone and setup
+git clone https://github.com/mehmettalhairmak/rss-aggregator-go.git
+cd rss-aggregator-go
+cp .env.example .env
+
+# Run with Docker Compose
+docker-compose up -d
+
+# Run migrations
+docker-compose run --rm migrations
+
+# Check logs
+docker-compose logs -f api
+```
+
+**Services:**
+- API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger/index.html`
+- PostgreSQL: `localhost:5432`
+
+**Docker Commands:**
+
+```bash
+docker-compose up -d          # Start all services
+docker-compose down           # Stop all services
+docker-compose logs -f        # View logs
+docker-compose down -v        # Remove volumes (clears DB)
+```
+
+### Generate Documentation
+
+```bash
+# Generate Swagger docs
+swag init -g cmd/api/main.go -o docs
+```
 
 ## 📚 API Documentation
+
+### Interactive API Documentation (Swagger)
+
+Access the interactive Swagger UI at: `http://localhost:8080/swagger/index.html`
+
+The Swagger documentation provides:
+- Complete API reference
+- Interactive request/response testing
+- Authentication examples
+- Request/response schemas
 
 ### Authentication
 
@@ -198,14 +257,11 @@ curl http://localhost:8080/v1/posts \
 
 ## 🧪 Development
 
-### Commands
+### Development Commands
 
 ```bash
-# Run in development
+# Run server
 go run cmd/api/main.go
-
-# Build binary
-go build -o bin/api ./cmd/api
 
 # Run tests
 go test ./...
@@ -213,23 +269,17 @@ go test ./...
 # Run tests with coverage
 go test -cover ./...
 
-# Generate coverage report
+# View coverage report
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 
 # Run specific package tests
 go test ./internal/auth/...
 
-# Run tests with verbose output
-go test -v ./...
-
-# Run tests with race detection
-go test -race ./...
-
-# Generate SQLC code (after editing SQL)
+# Generate SQLC code
 sqlc generate
 
-# Create new migration
+# Create migration
 cd sql/schema && goose create migration_name sql
 
 # Run migrations
@@ -244,6 +294,7 @@ Create `.env` file:
 PORT=8080
 DB_URL=postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable
 JWT_SECRET=your-secret-key-here
+ENV=development
 ```
 
 ## 🧪 Testing
@@ -282,102 +333,77 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
-See [README_TESTING.md](README_TESTING.md) for detailed testing guide.
-
 ## 🗺️ Roadmap
 
-### Phase 1: JWT Authentication System
+### Completed Phases
 
-- [x] **User Authentication**
-  - Login/logout endpoints
-  - User registration with email & password
-  - Password hashing with bcrypt
-  - Email validation
-- [x] **JWT Implementation**
-  - Access & refresh token generation
-  - Token expiration & rotation
-  - Refresh token storage in database
-  - Secure JWT secret management
+- [x] **Phase 1: JWT Authentication System**
+  - User registration & login
+  - Access & refresh tokens
+  - JWT-based authentication
+  
+- [x] **Phase 2: RSS Scraping**
+  - RSS/Atom feed parsing
+  - Background worker for periodic updates
+  - Feed priority scheduling
+  
+- [x] **Phase 3: Enhanced Features**
+  - Cursor-based pagination
+  - Feed metadata extraction
+  - Priority-based feed updates
+  
+- [x] **Phase 4: Production Ready**
+  - Rate limiting (token bucket)
+  - Structured logging (Zerolog)
+  - Comprehensive test suite (>80%)
+  - Docker & docker-compose
+  - CI/CD with GitHub Actions
+  - OpenAPI/Swagger documentation
 
-### Phase 2: RSS Scraping
-
-- [x] Posts table schema & migration
-- [x] RSS XML parser (RSS 2.0 & Atom)
-- [x] Background worker for periodic fetching
-- [x] Posts API endpoints with pagination
-
-### Phase 3: Enhanced Features
-
-- [x] Feed URL validation before creation
-- [x] Cursor-based pagination
-- [x] Feed metadata (logo, description)
-- [x] Better error handling & logging
-- [x] Feed update priority system
-
-### Phase 4: Production Ready
-
-- [x] Rate limiting (token bucket)
-- [x] Structured logging (zap/zerolog)
-- [x] Comprehensive test suite (>80% coverage)
-- [ ] Docker & docker-compose
-- [ ] CI/CD with GitHub Actions
-- [ ] OpenAPI/Swagger documentation
-
-### Phase 5: Advanced Features
+### Future Enhancements
 
 - [ ] WebSocket for real-time updates
-- [ ] Full-text search (PostgreSQL or ElasticSearch)
+- [ ] Full-text search
 - [ ] Feed categories & tags
 - [ ] Read/unread status tracking
 - [ ] OPML import/export
 - [ ] Prometheus metrics
-- [ ] **Advanced Authentication**
-  - OAuth2 integration (Google, GitHub)
-  - Role-based access control (RBAC)
-  - API key scopes & permissions
-  - Two-factor authentication (2FA)
-  - Session management
-
-### Phase 6: Scaling
-
-- [ ] Redis caching layer
-- [ ] Message queue (RabbitMQ/NATS)
-- [ ] Database read replicas
-- [ ] Horizontal scaling support
-- [ ] Performance benchmarks
+- [ ] OAuth2 integration
+- [ ] Role-based access control (RBAC)
 
 ## 📖 Learning Resources
 
+- [Go Documentation](https://go.dev/doc/)
 - [Effective Go](https://go.dev/doc/effective_go)
-- [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [Standard Go Project Layout](https://github.com/golang-standards/project-layout)
 - [SQLC Documentation](https://docs.sqlc.dev/)
-- [Goose Migrations](https://github.com/pressly/goose)
+- [Chi Router](https://github.com/go-chi/chi)
+- [Zerolog](https://github.com/rs/zerolog)
+- [Standard Go Project Layout](https://github.com/golang-standards/project-layout)
 
-## 🤝 Contributing
+## 🎓 What You'll Learn
 
-Contributions welcome! Please:
+This project demonstrates:
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-**Guidelines:**
-
-- Follow Go conventions
-- Add tests for new features
-- Update documentation
-- Run `go fmt` and `go vet`
+- **Clean Architecture** - Proper separation of concerns
+- **Type-Safe SQL** - Using SQLC for database operations
+- **JWT Authentication** - Secure token-based auth
+- **Background Workers** - Periodic task scheduling
+- **Test-Driven Development** - Comprehensive test coverage
+- **CI/CD** - Automated testing and quality checks
+- **Docker** - Containerization and orchestration
+- **API Documentation** - Swagger/OpenAPI integration
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file
 
-## 👨‍💻 Author
+## 👨‍💻 About
 
-**Mehmet Talha Irmak**
+**Learning Project** - This is an educational project to learn Go and modern backend development practices.
+
+**Tech:** Go, PostgreSQL, Docker, GitHub Actions, Swagger
+
+**Author:** Mehmet Talha Irmak
 
 - GitHub: [@mehmettalhairmak](https://github.com/mehmettalhairmak)
 - Project: [rss-aggregator-go](https://github.com/mehmettalhairmak/rss-aggregator-go)

@@ -1,0 +1,321 @@
+basePath: /v1
+host: localhost:8080
+info:
+  contact:
+    email: mehmettalhairmak@example.com
+    name: API Support
+  description: A production-ready RSS feed aggregator API built with Go
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: RSS Aggregator API
+  version: "1.0"
+paths:
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /v1/auth/logout:
+    get:
+      consumes:
+      - application/json
+      description: Logout user and invalidate refresh token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            type: object
+        "500":
+          description: Server error
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Logout user
+      tags:
+      - auth
+  /v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get new access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh_token
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New tokens issued
+          schema:
+            type: object
+        "400":
+          description: Invalid or expired token
+          schema:
+            type: object
+      summary: Refresh access token
+      tags:
+      - auth
+  /v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account with email and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: user
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            type: object
+        "400":
+          description: Invalid input or duplicate email
+          schema:
+            type: object
+        "500":
+          description: Server error
+          schema:
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /v1/feed:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all RSS feeds
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of feeds
+          schema:
+            type: object
+      summary: Get all feeds
+      tags:
+      - feeds
+    post:
+      consumes:
+      - application/json
+      description: Creates a new RSS feed and automatically follows it
+      parameters:
+      - description: Feed data
+        in: body
+        name: feed
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Feed created
+          schema:
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: object
+        "500":
+          description: Server error
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Create RSS feed
+      tags:
+      - feeds
+  /v1/feed_follows:
+    get:
+      consumes:
+      - application/json
+      description: Get all feeds the user is following
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of followed feeds
+          schema:
+            type: object
+        "500":
+          description: Server error
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Get followed feeds
+      tags:
+      - feed_follows
+    post:
+      consumes:
+      - application/json
+      description: Start following an RSS feed
+      parameters:
+      - description: Feed follow data
+        in: body
+        name: feed_follow
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Feed follow created
+          schema:
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Follow a feed
+      tags:
+      - feed_follows
+  /v1/feed_follows/{feedFollowID}:
+    delete:
+      consumes:
+      - application/json
+      description: Stop following an RSS feed
+      parameters:
+      - description: Feed Follow ID
+        in: path
+        name: feedFollowID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Feed unfollowed
+          schema:
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            type: object
+        "500":
+          description: Server error
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Unfollow a feed
+      tags:
+      - feed_follows
+  /v1/posts:
+    get:
+      consumes:
+      - application/json
+      description: Get posts from all followed feeds with cursor-based pagination
+      parameters:
+      - default: 20
+        description: Number of posts to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for pagination (RFC3339 timestamp)
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of posts
+          schema:
+            type: object
+        "400":
+          description: Invalid parameters
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Get user posts
+      tags:
+      - posts
+  /v1/ready:
+    get:
+      consumes:
+      - application/json
+      description: Checks if the server is ready to handle requests
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /v1/users/me:
+    get:
+      consumes:
+      - application/json
+      description: Get the authenticated user's information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User information
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: Get current user
+      tags:
+      - users
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -14,6 +14,17 @@ import (
 )
 
 // HandlerCreateFeed creates a new RSS feed
+// @Summary     Create RSS feed
+// @Description Creates a new RSS feed and automatically follows it
+// @Tags        feeds
+// @Accept      json
+// @Produce     json
+// @Security    Bearer
+// @Param       feed  body      object  true  "Feed data"
+// @Success     201   {object}  object  "Feed created"
+// @Failure     400   {object}  object  "Invalid input"
+// @Failure     500   {object}  object  "Server error"
+// @Router      /v1/feed [post]
 func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
 		Name string `json:"name"`
@@ -107,6 +118,13 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 }
 
 // HandlerGetFeed returns all feeds
+// @Summary     Get all feeds
+// @Description Get a list of all RSS feeds
+// @Tags        feeds
+// @Accept      json
+// @Produce     json
+// @Success     200  {object}  object  "List of feeds"
+// @Router      /v1/feed [get]
 func (cfg *Config) HandlerGetFeed(w http.ResponseWriter, r *http.Request) {
 	feeds, err := cfg.DB.GetFeeds(r.Context())
 	if err != nil {

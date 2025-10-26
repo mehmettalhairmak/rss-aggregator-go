@@ -1,0 +1,18 @@
+FROM golang:1.25-alpine AS builder
+
+# Install goose
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+# Runtime image
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates postgresql-client
+
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
+
+WORKDIR /migrations
+
+# Copy migration files
+COPY sql/schema/*.sql ./sql/schema/
+
+CMD ["goose", "postgres", "$DB_URL", "up"]

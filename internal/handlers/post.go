@@ -14,6 +14,17 @@ type postsResponse struct {
 	NextCursor string        `json:"next_cursor"`
 }
 
+// @Summary     Get user posts
+// @Description Get posts from all followed feeds with cursor-based pagination
+// @Tags        posts
+// @Accept      json
+// @Produce     json
+// @Security    Bearer
+// @Param       limit   query     int     false  "Number of posts to return (max 100)"  default(20)
+// @Param       cursor  query     string  false  "Cursor for pagination (RFC3339 timestamp)"
+// @Success     200     {object}  object  "List of posts"
+// @Failure     400     {object}  object  "Invalid parameters"
+// @Router      /v1/posts [get]
 func (cfg *Config) HandlerGetUserPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 20

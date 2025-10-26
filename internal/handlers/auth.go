@@ -35,6 +35,17 @@ import (
 //   - 201 Created: User successfully registered
 //   - 400 Bad Request: Invalid input or duplicate email
 //   - 500 Internal Server Error: Hash generation or token creation failed
+//
+// @Summary     Register a new user
+// @Description Creates a new user account with email and password
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       user  body      object  true  "User registration data" schema(parameters)
+// @Success     201   {object}  object  "User registered successfully"
+// @Failure     400   {object}  object  "Invalid input or duplicate email"
+// @Failure     500   {object}  object  "Server error"
+// @Router      /v1/auth/register [post]
 func (cfg *Config) HandlerRegister(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Name     string `json:"name"`
@@ -144,6 +155,17 @@ func (cfg *Config) HandlerRegister(w http.ResponseWriter, r *http.Request) {
 //   - 400 Bad Request: Missing required fields
 //   - 401 Unauthorized: Invalid credentials
 //   - 500 Internal Server Error: Token generation failed
+//
+// @Summary     Login user
+// @Description Authenticate user with email and password
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       credentials  body      object  true  "Login credentials"
+// @Success     200          {object}  object  "Login successful"
+// @Failure     400          {object}  object  "Invalid input"
+// @Failure     401          {object}  object  "Invalid credentials"
+// @Router      /v1/auth/login [post]
 func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
@@ -216,6 +238,15 @@ func (cfg *Config) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary     Logout user
+// @Description Logout user and invalidate refresh token
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Security    Bearer
+// @Success     200  {object}  object  "Logout successful"
+// @Failure     500  {object}  object  "Server error"
+// @Router      /v1/auth/logout [get]
 func (cfg *Config) HandlerLogout(w http.ResponseWriter, r *http.Request, user database.User) {
 	err := cfg.DB.DeleteRefreshToken(r.Context(), user.ID)
 	if err != nil {
@@ -252,6 +283,16 @@ func (cfg *Config) HandlerLogout(w http.ResponseWriter, r *http.Request, user da
 //   - 400 Bad Request: Missing or invalid refresh token, or expired token
 //   - 401 Unauthorized: Invalid token
 //   - 500 Internal Server Error: Database or token generation failure
+//
+// @Summary     Refresh access token
+// @Description Get new access token using refresh token
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       refresh_token  body      object  true  "Refresh token"
+// @Success     200            {object}  object  "New tokens issued"
+// @Failure     400            {object}  object  "Invalid or expired token"
+// @Router      /v1/auth/refresh [post]
 func (cfg *Config) HandlerRefreshToken(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		RefreshToken string `json:"refresh_token"`
