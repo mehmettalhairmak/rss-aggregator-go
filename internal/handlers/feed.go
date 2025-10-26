@@ -3,12 +3,14 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/database"
+	"github.com/mehmettalhairmak/rss-aggregator/internal/logger"
 	"github.com/mehmettalhairmak/rss-aggregator/internal/models"
 	"github.com/mmcdole/gofeed"
 )
@@ -59,7 +61,11 @@ func (cfg *Config) HandlerCreateFeed(w http.ResponseWriter, r *http.Request, use
 		return
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			logger.ErrorErr(err, "Failed to rollback transaction")
+		}
+	}()
 
 	qtx := cfg.DB.WithTx(tx)
 

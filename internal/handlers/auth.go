@@ -386,7 +386,7 @@ func (cfg *Config) HandlerRefreshToken(w http.ResponseWriter, r *http.Request) {
 func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, user *database.User, refreshTokenString string) error {
 	tx, errorTx := cfg.DBConn.BeginTx(context, nil)
 	if errorTx != nil {
-		return fmt.Errorf("Failed to start transaction: %v", errorTx)
+		return fmt.Errorf("failed to start transaction: %v", errorTx)
 	}
 
 	defer func() {
@@ -399,7 +399,7 @@ func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, 
 
 	errDeleteRefreshTokenDb := qtx.DeleteRefreshToken(context, user.ID)
 	if errDeleteRefreshTokenDb != nil {
-		return fmt.Errorf("Failed to delete refresh token: %v", errDeleteRefreshTokenDb)
+		return fmt.Errorf("failed to delete refresh token: %v", errDeleteRefreshTokenDb)
 	}
 
 	_, errSaveRefreshTokenDb := qtx.CreateRefreshToken(context, database.CreateRefreshTokenParams{
@@ -410,11 +410,11 @@ func (cfg *Config) deleteAndGenerateRefreshTokenFromDB(context context.Context, 
 		CreatedAt: time.Now().UTC(),
 	})
 	if errSaveRefreshTokenDb != nil {
-		return fmt.Errorf("Failed to save refresh token: %v", errSaveRefreshTokenDb)
+		return fmt.Errorf("failed to save refresh token: %v", errSaveRefreshTokenDb)
 	}
 
 	if errTxCommit := tx.Commit(); errTxCommit != nil {
-		return fmt.Errorf("Failed to commit transaction: %v", errTxCommit)
+		return fmt.Errorf("failed to commit transaction: %v", errTxCommit)
 	}
 
 	return nil

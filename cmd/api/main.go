@@ -72,7 +72,11 @@ func main() {
 		logger.ErrorErr(err, "Failed to connect to database")
 		os.Exit(1)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logger.ErrorErr(err, "Failed to close database connection")
+		}
+	}()
 	logger.Info("Successfully connected to database")
 
 	// Create database queries and handler configs

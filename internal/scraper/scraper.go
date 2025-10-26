@@ -58,7 +58,7 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 			description.Valid = true
 		}
 
-		publishedAt := time.Time{}
+		var publishedAt time.Time
 		if item.PublishedParsed != nil {
 			publishedAt = *item.PublishedParsed
 		} else {

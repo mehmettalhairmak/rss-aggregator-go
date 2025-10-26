@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -13,7 +14,9 @@ import (
 
 func init() {
 	// Set JWT_SECRET for tests
-	os.Setenv("JWT_SECRET", "test-secret-key-for-testing-only")
+	if err := os.Setenv("JWT_SECRET", "test-secret-key-for-testing-only"); err != nil {
+		panic(fmt.Sprintf("Failed to set JWT_SECRET: %v", err))
+	}
 }
 
 func TestGenerateJWT_ValidUser_ReturnsToken(t *testing.T) {
