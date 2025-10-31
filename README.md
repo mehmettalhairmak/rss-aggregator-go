@@ -362,7 +362,7 @@ go tool cover -html=coverage.out
 
 ### Future Enhancements
 
-- [ ] WebSocket for real-time updates
+- [x] WebSocket for real-time updates
 - [ ] Full-text search
 - [ ] Feed categories & tags
 - [ ] Read/unread status tracking
