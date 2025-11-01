@@ -30,6 +30,7 @@ RSS Aggregator is a comprehensive RESTful API service for managing RSS feed subs
 - ✅ Posts with cursor-based pagination
 - ✅ Feed metadata (logo, description, priority)
 - ✅ Background RSS scraper with priority scheduling
+- ✅ WebSocket support for real-time updates
 - ✅ PostgreSQL with SQLC (type-safe SQL)
 - ✅ Database migrations with Goose
 - ✅ Rate limiting (token bucket algorithm)
@@ -54,6 +55,7 @@ rss-aggregator/
 │   ├── handlers/        # HTTP handlers
 │   ├── middleware/      # Auth & rate limiting
 │   ├── models/          # API models & responses
+│   ├── realtime/        # WebSocket hub & clients
 │   ├── scraper/         # Background RSS scraper
 │   └── logger/          # Structured logging
 ├── sql/
@@ -83,6 +85,7 @@ rss-aggregator/
 | **Zerolog**    | Structured logging               |
 | **JWT**        | Authentication                   |
 | **Gofeed**     | RSS/Atom feed parsing            |
+| **Gorilla WS** | WebSocket implementation         |
 | **Docker**     | Containerization                 |
 | **Swagger**    | API documentation                |
 
@@ -198,6 +201,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 | `GET`    | `/v1/feed_follows`      | ✅   | List followed feeds |
 | `DELETE` | `/v1/feed_follows/{id}` | ✅   | Unfollow feed       |
 | `GET`    | `/v1/posts`             | ✅   | Get user posts      |
+| `GET`    | `/v1/ws`                | ✅   | WebSocket connection |
 
 ### Example Usage
 
@@ -232,6 +236,9 @@ curl -X POST http://localhost:8080/v1/feed_follows \
 # Get user posts
 curl http://localhost:8080/v1/posts \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Connect via WebSocket (requires WebSocket client)
+# ws://localhost:8080/v1/ws?token=YOUR_JWT_TOKEN
 ```
 
 ### Response Format
@@ -359,17 +366,18 @@ go tool cover -html=coverage.out
   - Docker & docker-compose
   - CI/CD with GitHub Actions
   - OpenAPI/Swagger documentation
+  
+- [x] **Phase 5: Real-time Features**
+  - WebSocket support for real-time updates
+  - Real-time feed notifications
 
 ### Future Enhancements
 
-- [x] WebSocket for real-time updates
-- [ ] Full-text search
-- [ ] Feed categories & tags
-- [ ] Read/unread status tracking
-- [ ] OPML import/export
-- [ ] Prometheus metrics
-- [ ] OAuth2 integration
-- [ ] Role-based access control (RBAC)
+This project has reached a stable state with all core features implemented. Future enhancements may include:
+
+- Additional feed sources and formats
+- Enhanced search and filtering capabilities
+- User customization options
 
 ## 📖 Learning Resources
 
@@ -388,6 +396,7 @@ This project demonstrates:
 - **Type-Safe SQL** - Using SQLC for database operations
 - **JWT Authentication** - Secure token-based auth
 - **Background Workers** - Periodic task scheduling
+- **Real-time Communication** - WebSocket for live updates
 - **Test-Driven Development** - Comprehensive test coverage
 - **CI/CD** - Automated testing and quality checks
 - **Docker** - Containerization and orchestration

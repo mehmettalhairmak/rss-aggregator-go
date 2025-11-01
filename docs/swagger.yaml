@@ -312,6 +312,44 @@ paths:
       summary: Get current user
       tags:
       - users
+  /v1/ws:
+    get:
+      consumes:
+      - application/json
+      description: Establishes a WebSocket connection for real-time updates. The connection
+        requires authentication via JWT token passed as query parameter. Once connected,
+        clients receive real-time notifications when new posts are available from
+        their followed feeds.
+      parameters:
+      - description: JWT access token for authentication
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols - WebSocket connection established
+          schema:
+            type: string
+        "400":
+          description: Bad request - Invalid token or connection error
+          schema:
+            type: object
+        "401":
+          description: Unauthorized - Invalid or missing token
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      security:
+      - Bearer: []
+      summary: WebSocket connection
+      tags:
+      - websocket
 securityDefinitions:
   Bearer:
     description: Type "Bearer" followed by a space and JWT token.
